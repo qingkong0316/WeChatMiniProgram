@@ -1,0 +1,128 @@
+/**
+ * 成就条件元数据：供进度提示与校验脚本复用，避免与 ACHIEVEMENT_RULES 重复硬编码站名。
+ * type 说明见 getRemainingHint。
+ */
+const ACHIEVEMENT_META = {
+  1: { type: 'has', stations: ['人民广场'] },
+  2: { type: 'has', stations: ['陆家嘴'] },
+  3: { type: 'hasAny', stations: ['南京东路', '豫园'] },
+  4: { type: 'hasAny', stations: ['衡山路', '常熟路'] },
+  5: { type: 'has', stations: ['徐家汇'] },
+  6: { type: 'hasAny', stations: ['龙华中路', '云锦路'] },
+  7: { type: 'has', stations: ['静安寺'] },
+  8: { type: 'hasAny', stations: ['中潭路', '江宁路'] },
+  9: { type: 'hasAny', stations: ['一大会址·新天地', '一大会址·黄陂南路'] },
+  10: { type: 'hasAny', stations: ['淮海中路', '陕西南路'] },
+  11: { type: 'has', stations: ['迪士尼'] },
+  12: { type: 'hasAny', stations: ['松江大学城', '美兰湖'] },
+  13: { type: 'hasAll', stations: ['人民广场', '徐家汇'] },
+  14: { type: 'hasAll', stations: ['上海火车站', '上海南站', '虹桥火车站'] },
+  15: { type: 'hasAll', stations: ['虹桥2号航站楼', '浦东1号2号航站楼'] },
+  16: { type: 'has', stations: ['花桥'] },
+  17: { type: 'hasAll', stations: ['花桥', '滴水湖'] },
+  18: { type: 'hasAll', stations: ['中华艺术宫', '西藏南路'] },
+  19: { type: 'hasAll', stations: ['七宝', '朱家角'] },
+  20: { type: 'hasAll', stations: ['世博会博物馆', '世博大道', '耀华路'] },
+  21: { type: 'hasAny', stations: ['金沙江路', '紫竹高新区'] },
+  22: { type: 'hasAny', stations: ['东川路', '紫竹高新区'] },
+  23: { type: 'hasAny', stations: ['五角场', '江湾体育场'] },
+  24: { type: 'has', stations: ['松江大学城'] },
+  25: { type: 'has', stations: ['同济大学'] },
+  26: { type: 'has', stations: ['上海大学'] },
+  27: { type: 'has', stations: ['临港大道'] },
+  28: { type: 'has', stations: ['曹路'] },
+  29: { type: 'has', stations: ['中科路'] },
+  30: {
+    type: 'compound',
+    anyOf: ['金沙江路', '紫竹高新区'],
+    allOf: ['东川路', '同济大学', '五角场']
+  },
+  31: { type: 'hasAny', stations: ['张江高科', '金科路'] },
+  32: { type: 'has', stations: ['漕河泾开发区'] },
+  33: { type: 'has', stations: ['世纪大道'] },
+  34: { type: 'hasAny', stations: ['商城路', '浦东南路', '浦东南路(原东昌路)'] },
+  35: { type: 'hasAll', stations: ['龙阳路', '世纪大道', '汉中路'] },
+  36: { type: 'hasAll', stations: ['广兰路', '唐镇'] },
+  37: { type: 'has', stations: ['虹桥火车站'] },
+  38: { type: 'has', stations: ['真如'] },
+  39: { type: 'has', stations: ['东方体育中心'] },
+  40: {
+    type: 'lateCheckin',
+    stations: ['张江高科', '漕河泾开发区'],
+    hour: 22
+  },
+  41: { type: 'count', threshold: 1 },
+  42: { type: 'count', threshold: 20 },
+  43: { type: 'count', threshold: 50 },
+  44: { type: 'count', threshold: 100 },
+  45: { type: 'count', threshold: 300 },
+  46: { type: 'progress', threshold: 100 },
+  47: { type: 'hasAny', stations: ['龙阳路', '浦东1号2号航站楼'] },
+  48: { type: 'has', stations: ['滴水湖'] },
+  49: { type: 'has', stations: ['富锦路'] },
+  50: { type: 'has', stations: ['闵行开发区'] },
+  51: { type: 'lineComplete', lineKey: '1' },
+  52: { type: 'lineComplete', lineKey: '2' },
+  53: { type: 'lineComplete', lineKey: '10' },
+  54: { type: 'lineComplete', lineKey: '11' },
+  55: { type: 'lineComplete', lineKey: '5' },
+  56: { type: 'lineComplete', lineKey: 'Special21' },
+  57: { type: 'completeLineCount', threshold: 5 },
+  58: { type: 'completeLineCount', threshold: 10 },
+  59: { type: 'consecutive', threshold: 5 },
+  60: { type: 'consecutive', threshold: 10 },
+  61: { type: 'has', stations: ['龙阳路'] },
+  62: { type: 'has', stations: ['世纪大道'] },
+  63: { type: 'has', stations: ['曹杨路'] },
+  64: { type: 'hasAll', stations: ['人民广场', '徐家汇', '汉中路'] },
+  65: { type: 'hasAll', stations: ['上海火车站', '汉中路', '上海南站'] },
+  66: { type: 'has', stations: ['中山公园'] },
+  67: { type: 'has', stations: ['莘庄'] },
+  68: { type: 'transferHubs', threshold: 5 },
+  69: { type: 'transferHubs', threshold: 10 },
+  70: { type: 'transferHubs', threshold: 15 },
+  71: { type: 'hasAll', stations: ['陆家嘴', '世纪大道', '张江高科'] },
+  72: { type: 'hasAll', stations: ['衡山路', '常熟路', '陕西南路'] },
+  73: { type: 'hasAll', stations: ['虹桥火车站', '淞虹路', '国家会展中心(2号线)'] },
+  74: { type: 'hasAll', stations: ['中华艺术宫', '世博大道', '东方体育中心'] },
+  75: { type: 'hasAll', stations: ['南京东路', '陆家嘴', '豫园'] },
+  76: { type: 'hasAll', stations: ['云锦路', '龙华中路', '龙耀路'] },
+  77: { type: 'hasAll', stations: ['嘉定新城', '安亭'] },
+  78: { type: 'hasAll', stations: ['松江大学城', '松江新城', '醉白池'] },
+  79: { type: 'hasAll', stations: ['临港大道', '滴水湖'] },
+  80: { type: 'hasAll', stations: ['花桥', '滴水湖', '富锦路'] },
+  81: { type: 'checkOrder', stations: ['广兰路', '人民广场', '虹桥火车站'] },
+  82: { type: 'checkOrder', stations: ['富锦路', '人民广场', '莘庄'] },
+  83: { type: 'checkOrder', stations: ['花桥', '徐家汇', '迪士尼'] },
+  84: { type: 'lineComplete', lineKey: 'Special22' },
+  85: { type: 'lineComplete', lineKey: 'Special23' },
+  86: { type: 'sameDayCount', threshold: 3 },
+  87: { type: 'adjacentPair' },
+  88: { type: 'consecutive', threshold: 8 },
+  89: { type: 'sameDayMultiLine' },
+  90: { type: 'checkOrder', stations: ['南京东路', '人民广场', '南京西路'] },
+  91: { type: 'count', threshold: 150 },
+  92: { type: 'count', threshold: 200 },
+  93: { type: 'count', threshold: 250 },
+  94: { type: 'progress', threshold: 50 },
+  95: { type: 'progress', threshold: 80 },
+  96: { type: 'mainLines', threshold: 18 },
+  97: { type: 'allLines', threshold: 21 },
+  98: { type: 'memo', threshold: 10 },
+  99: { type: 'weekend' },
+  100: { type: 'count', threshold: 350 }
+};
+
+function collectMetaStations(meta) {
+  if (!meta) return [];
+  const names = [];
+  if (meta.stations) names.push(...meta.stations);
+  if (meta.anyOf) names.push(...meta.anyOf);
+  if (meta.allOf) names.push(...meta.allOf);
+  return names;
+}
+
+module.exports = {
+  ACHIEVEMENT_META,
+  collectMetaStations
+};

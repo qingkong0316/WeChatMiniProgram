@@ -1,0 +1,62 @@
+<view class="night-page">
+  <view class="night-top-bar">
+    <view class="night-count">
+      <image class="night-count-icon" src="/images/ui/icon-sparkle.png" mode="aspectFit" />
+      <text>{{globalCheckedCount}} / {{globalTotalCount}} 已点亮</text>
+    </view>
+    <scroll-view scroll-x class="night-filter-scroll" enable-flex show-scrollbar="{{false}}">
+      <view class="night-filter-row">
+        <view
+          class="night-chip {{filterLine === '' ? 'active' : ''}}"
+          bindtap="onFilterTap"
+          data-line="">全部</view>
+        <view
+          wx:for="{{filterLineKeys}}"
+          wx:key="*this"
+          class="night-chip {{filterLine === item ? 'active' : ''}}"
+          bindtap="onFilterTap"
+          data-line="{{item}}">{{filterLabels[item]}}</view>
+      </view>
+    </scroll-view>
+    <scroll-view scroll-x class="night-filter-scroll night-tag-scroll" enable-flex show-scrollbar="{{false}}">
+      <view class="night-filter-row">
+        <view
+          class="night-chip night-chip--tag {{filterTags.unchecked ? 'active' : ''}}"
+          bindtap="onTagFilterTap"
+          data-tag="unchecked">未点亮</view>
+        <view
+          class="night-chip night-chip--tag {{filterTags.transfer ? 'active' : ''}}"
+          bindtap="onTagFilterTap"
+          data-tag="transfer">换乘站</view>
+        <view
+          class="night-chip night-chip--tag {{filterTags.weekNew ? 'active' : ''}}"
+          bindtap="onTagFilterTap"
+          data-tag="weekNew">本周新点亮</view>
+      </view>
+    </scroll-view>
+  </view>
+
+  <view class="night-canvas-wrap">
+    <canvas
+      type="2d"
+      id="metroCanvas"
+      class="night-canvas"
+      disable-scroll="{{true}}"
+      bindtouchstart="onTouchStart"
+      bindtouchmove="onTouchMove"
+      bindtouchend="onTouchEnd"
+      bindtouchcancel="onTouchEnd" />
+    <view class="night-reset-btn" bindtap="onResetView">复位</view>
+  </view>
+
+  <station-sheet
+    visible="{{showStationSheet}}"
+    theme="night"
+    station="{{stationSheetData}}"
+    showUndo="{{true}}"
+    showCheckinLink="{{stationSheetData && !stationSheetData.checked}}"
+    bind:close="closeStationSheet"
+    bind:undo="onUndoCheckin"
+    bind:checkin="onGoCheckin"
+  />
+</view>

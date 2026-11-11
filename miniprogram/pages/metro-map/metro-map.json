@@ -1,0 +1,11 @@
+{
+  "navigationBarTitleText": "星图线路",
+  "navigationBarBackgroundColor": "#0a0e27",
+  "navigationBarTextStyle": "white",
+  "backgroundColor": "#0a0e27",
+  "backgroundTextStyle": "light",
+  "disableScroll": true,
+  "usingComponents": {
+    "station-sheet": "../../components/station-sheet/station-sheet"
+  }
+}

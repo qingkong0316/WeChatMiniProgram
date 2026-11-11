@@ -1,0 +1,57 @@
+/** app.wxss — 温暖手账风设计令牌 **/
+
+page {
+  --bg-page: #FAF7F2;
+  --bg-surface: #FFFFFF;
+  --bg-muted: #F3EDE4;
+  --border: rgba(139, 115, 85, 0.14);
+  --border-light: rgba(139, 115, 85, 0.08);
+  --text-primary: #3D3428;
+  --text-secondary: #8B7355;
+  --text-muted: #B8A992;
+  --accent: #C17F59;
+  --accent-soft: rgba(193, 127, 89, 0.12);
+  --success: #6B9E78;
+  --success-soft: rgba(107, 158, 120, 0.12);
+  --success-dark: #5A8A66;
+  --overlay: rgba(61, 52, 40, 0.45);
+  --shadow: 0 4rpx 24rpx rgba(61, 52, 40, 0.08);
+  --shadow-lg: 0 8rpx 32rpx rgba(61, 52, 40, 0.12);
+  --shadow-sheet: 0 -8rpx 32rpx rgba(61, 52, 40, 0.1);
+
+  background-color: var(--bg-page);
+  color: var(--text-primary);
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+}
+
+.container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  box-sizing: border-box;
+}
+
+button {
+  background: initial;
+}
+
+button:focus {
+  outline: 0;
+}
+
+button::after {
+  border: none;
+}
+
+/* 真机 emoji 安全容器：避免 line-height/overflow 裁切彩色字形 */
+.emoji-safe {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  overflow: visible;
+  line-height: 1.35;
+  font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", "Android Emoji", sans-serif;
+}

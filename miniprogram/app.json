@@ -1,0 +1,24 @@
+{
+  "pages": [
+    "pages/index/index",
+    "pages/metro-map/metro-map"
+  ],
+  "window": {
+    "backgroundColor": "#FAF7F2",
+    "backgroundTextStyle": "dark",
+    "navigationBarBackgroundColor": "#FAF7F2",
+    "navigationBarTitleText": "上海地铁打卡",
+    "navigationBarTextStyle": "black"
+  },
+  "sitemapLocation": "sitemap.json",
+  "style": "v2",
+  "lazyCodeLoading": "requiredComponents",
+  "permission": {
+    "scope.userLocation": {
+      "desc": "你的位置信息将用于判断是否到达地铁站"
+    }
+  },
+  "requiredPrivateInfos": [
+    "getLocation"
+  ]
+}

@@ -1,0 +1,41 @@
+<view
+  class="sheet-overlay sheet-overlay--{{theme}} {{visible ? 'is-open' : ''}}"
+  wx:if="{{overlayVisible || visible}}"
+  catchtap="onOverlayTap">
+  <view class="sheet-panel sheet-panel--{{theme}}" catchtap="noop" wx:if="{{station}}">
+    <view class="sheet-handle" />
+    <view class="sheet-header">
+      <view class="sheet-header-main">
+        <text class="sheet-name">{{station.name}}</text>
+        <text class="sheet-lines">{{station.lineText}}</text>
+      </view>
+      <view class="sheet-close" bindtap="onClose">✕</view>
+    </view>
+
+    <scroll-view scroll-y class="sheet-body" show-scrollbar="{{false}}">
+      <view class="sheet-section">
+        <text class="sheet-section-label">站点介绍</text>
+        <text class="sheet-intro">{{station.intro}}</text>
+      </view>
+
+      <view class="sheet-divider" />
+
+      <view class="sheet-section sheet-section-status">
+        <text class="sheet-section-label">打卡状态</text>
+        <block wx:if="{{station.checked}}">
+          <text class="sheet-status-checked">✓ 已打卡</text>
+          <text class="sheet-status-time">{{station.checkTimeText}}</text>
+          <text wx:if="{{station.memo}}" class="sheet-status-memo">备注：{{station.memo}}</text>
+        </block>
+        <text wx:else class="sheet-status-unchecked">（未打卡）</text>
+      </view>
+    </scroll-view>
+
+    <view wx:if="{{showMapLink || showCheckinLink || (showUndo && station.checked)}}" class="sheet-footer">
+      <view wx:if="{{showMapLink}}" class="sheet-action-btn sheet-action-btn--map" bindtap="onViewMap">在星图中查看</view>
+      <view wx:if="{{showCheckinLink && !station.checked}}" class="sheet-action-btn sheet-action-btn--checkin" bindtap="onCheckin">去打卡</view>
+      <view wx:if="{{showUndo && station.checked}}" class="sheet-undo-btn" bindtap="onUndo">撤销打卡</view>
+      <text wx:if="{{showUndo && station.checked}}" class="sheet-undo-hint">将撤销该站所有线路的打卡记录</text>
+    </view>
+  </view>
+</view>

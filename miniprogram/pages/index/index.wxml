@@ -1,0 +1,450 @@
+<view class="page">
+  <!-- 顶部区域 -->
+  <view class="top-section">
+    <!-- 最近 3 站 -->
+    <view class="nearest-row">
+      <view wx:if="{{locating}}" class="nearest-placeholder">正在定位...</view>
+      <view wx:elif="{{locationFailed || nearestStations.length === 0}}" class="nearest-placeholder nearest-placeholder--fail" bindtap="openLocationSettings">
+        <text>定位失败</text>
+        <text class="nearest-fail-hint">请检查定位权限，或到空旷处重试 · 点此打开设置</text>
+      </view>
+      <block wx:else>
+        <view
+          wx:for="{{nearestStations}}"
+          wx:key="id"
+          class="nearest-card-item nearest-card-item--tappable {{item.isPrimary ? 'nearest-card-item--primary' : ''}}"
+          bindtap="onNearestCardTap"
+          data-name="{{item.name}}"
+          data-line="{{item.line}}">
+          <text class="nearest-item-name">{{item.name}}</text>
+          <text class="nearest-item-line">{{item.lineLabel}}</text>
+          <text class="nearest-item-dist">{{item.distanceText}}</text>
+          <text wx:if="{{item.checked}}" class="nearest-item-badge nearest-item-badge--checked">已打卡</text>
+          <text wx:else class="nearest-item-badge">待打卡</text>
+        </view>
+      </block>
+    </view>
+    <view wx:if="{{locationFarAway && !locating && nearestStations.length}}" class="location-far-hint">
+      当前位置似乎不在上海，请检查定位或模拟位置
+    </view>
+
+    <!-- 进度区 -->
+    <view class="progress-row">
+      <view class="progress-block progress-block--tappable" bindtap="openStatsSheet" data-type="global">
+        <view class="progress-info">
+          <text class="progress-title">整体打卡进度</text>
+          <view class="progress-meta">
+            <text class="progress-num">{{globalCheckedCount}} / {{globalTotalCount}} ({{globalProgress}}%)</text>
+            <text class="progress-chevron">›</text>
+          </view>
+        </view>
+        <view class="progress-bar">
+          <view class="progress-inner" style="width: {{globalProgress}}%"></view>
+        </view>
+      </view>
+      <view class="progress-block progress-block--tappable" bindtap="openStatsSheet" data-type="line">
+        <view class="progress-info">
+          <text class="progress-title">{{currentLineLabel}}进度</text>
+          <view class="progress-meta">
+            <text class="progress-num">{{checkedCount}} / {{totalCount}} ({{progress}}%)</text>
+            <text class="progress-chevron">›</text>
+          </view>
+        </view>
+        <view class="progress-bar">
+          <view class="progress-inner" style="width: {{progress}}%"></view>
+        </view>
+      </view>
+    </view>
+
+    <!-- 个人进度小面板 -->
+    <view class="stats-row">
+      <view class="stats-card stats-card--tappable" bindtap="openStatsSheet" data-type="month">
+        <text class="stats-value">{{monthCheckinCount}}</text>
+        <text class="stats-label">本月打卡 ›</text>
+      </view>
+      <view
+        class="stats-card stats-card--center {{lastCheckinStation !== '暂无' ? 'stats-card--tappable' : ''}}"
+        bindtap="onLastStationTap">
+        <text class="stats-value stats-value--name">{{lastCheckinStation}}</text>
+        <text class="stats-label">最近一站{{lastCheckinStation !== '暂无' ? ' ›' : ''}}</text>
+      </view>
+      <view class="stats-card stats-card--tappable" bindtap="openStatsSheet" data-type="streak">
+        <text class="stats-value">{{exploreStreakDays}}</text>
+        <text class="stats-label">连续探索天 ›</text>
+      </view>
+    </view>
+
+    <view wx:if="{{nextAchievementHint}}" class="next-achievement-hint" bindtap="onNextAchievementTap">
+      <text class="next-achievement-label">下一步</text>
+      <text class="next-achievement-text">{{nextAchievementHint}}</text>
+      <text class="next-achievement-chevron">›</text>
+    </view>
+
+    <view class="metro-map-trigger" bindtap="openMetroMap">
+      <image class="metro-map-trigger-icon" src="/images/ui/icon-metro-map.png" mode="aspectFit" />
+      <view class="metro-map-trigger-text">
+        <text class="metro-map-trigger-title">查看星图线路</text>
+        <text class="metro-map-trigger-sub">已点亮 {{globalCheckedCount}} / {{globalTotalCount}} 站</text>
+      </view>
+      <text class="metro-map-trigger-chevron">＞</text>
+    </view>
+
+    <!-- 打卡操作 -->
+    <view class="checkin-actions">
+      <button
+        class="btn-checkin-nearest"
+        bindtap="handleCheckIn"
+        disabled="{{!canCheckIn}}">
+        {{checkinButtonText}}
+      </button>
+      <button class="btn-refresh" bindtap="refreshNearestStation">重新定位</button>
+    </view>
+  </view>
+
+  <!-- 主体：左栏线路 + 右栏站点 -->
+  <view class="body-section">
+    <scroll-view scroll-y="true" class="sidebar">
+      <view
+        wx:for="{{lineKeys}}"
+        wx:key="*this"
+        class="sidebar-item {{currentLine === item ? 'active' : ''}}"
+        bindtap="switchLine"
+        data-line="{{item}}">
+        {{item}}号线
+      </view>
+    </scroll-view>
+
+    <scroll-view
+      scroll-y="true"
+      class="main-content"
+      scroll-into-view="{{stationScrollIntoView}}"
+      scroll-with-animation="{{true}}">
+      <view class="station-search-bar">
+        <view class="station-search-scope">
+          <view
+            class="search-scope-chip {{globalSearchScope === 'line' ? 'active' : ''}}"
+            bindtap="toggleSearchScope"
+            data-scope="line">本线</view>
+          <view
+            class="search-scope-chip {{globalSearchScope === 'global' ? 'active' : ''}}"
+            bindtap="toggleSearchScope"
+            data-scope="global">全线</view>
+        </view>
+        <input
+          class="station-search-input"
+          type="text"
+          placeholder="{{globalSearchScope === 'global' ? '搜索全线站点' : '搜索本线站点'}}"
+          value="{{stationSearchQuery}}"
+          confirm-type="search"
+          bindinput="onStationSearchInput"
+        />
+        <view wx:if="{{stationSearchQuery}}" class="station-search-clear" bindtap="clearStationSearch">清除</view>
+      </view>
+      <block wx:for="{{stations}}" wx:key="id">
+        <view
+          wx:if="{{item.checked}}"
+          id="station-{{item.id}}"
+          class="station-item checked-card"
+          bindtap="onCheckedCardTap"
+          data-id="{{item.id}}">
+          <view class="checked-row">
+            <text class="name-txt ellipsis">{{item.name}}</text>
+            <text class="checked-tag">已打卡</text>
+          </view>
+          <view class="checked-row checked-row-meta">
+            <view class="meta-left">
+              <text class="check-time">{{item.checkTimeText}}</text>
+              <text class="memo-btn" catchtap="handleMemo" data-id="{{item.id}}">备注</text>
+            </view>
+            <button class="btn-undo-mini" catchtap="confirmDelete" data-id="{{item.id}}">撤销</button>
+          </view>
+        </view>
+        <view
+          wx:else
+          id="station-{{item.id}}"
+          class="station-item station-item-tappable"
+          bindtap="onStationCardTap"
+          data-id="{{item.id}}">
+          <text class="name-txt">{{item.name}}</text>
+          <text wx:if="{{item.lineLabel}}" class="station-line-tag">{{item.lineLabel}}</text>
+        </view>
+      </block>
+
+      <view wx:if="{{stations.length === 0}}" class="empty-tip">
+        {{stationSearchQuery ? (globalSearchScope === 'global' ? '全线没有匹配的站点' : '本线没有匹配的站点') : '暂无站点数据'}}
+      </view>
+    </scroll-view>
+  </view>
+
+  <view class="achievement-trigger" bindtap="toggleAchievementPage">
+    <text class="achievement-trigger-text">成就图鉴 ({{unlockedCount}}/{{achievementTotal}})</text>
+    <text class="achievement-trigger-chevron">＞</text>
+  </view>
+
+  <view
+    class="achievement-overlay {{showAchievementPage ? 'is-open' : ''}} {{achievementPreparing ? 'is-preparing' : ''}}"
+    wx:if="{{showAchievementPage || achievementOverlayVisible}}"
+    catchtap="closeAchievementPage">
+    <view class="achievement-panel" catchtap="noop">
+      <view class="achievement-panel-header">
+        <text class="achievement-panel-title">成就图鉴</text>
+        <text class="achievement-panel-count">{{unlockedCount}} / {{achievementTotal}}</text>
+        <view class="achievement-panel-close" bindtap="toggleAchievementPage">✕</view>
+      </view>
+
+      <scroll-view
+        scroll-y
+        class="achievement-panel-scroll"
+        show-scrollbar="{{false}}"
+        scroll-top="{{achievementScrollTop}}"
+        scroll-with-animation="{{achievementScrollAnimate}}">
+        <block wx:for="{{achievementCategories}}" wx:key="id">
+          <view class="achievement-category-card">
+            <view
+              class="achievement-category-header"
+              bindtap="toggleCategory"
+              data-id="{{item.id}}">
+              <text class="achievement-category-title">{{item.title}}</text>
+              <text class="achievement-category-meta">{{item.unlockedInSection}}/{{item.totalInSection}}</text>
+              <view class="achievement-category-arrow {{item.expanded ? 'is-expanded' : ''}}"></view>
+            </view>
+
+            <view wx:if="{{item.expanded}}" class="achievement-category-body">
+              <view class="achievement-grid">
+                <view
+                  wx:for="{{item.items}}"
+                  wx:for-item="ach"
+                  wx:key="id"
+                  id="achievement-{{ach.id}}"
+                  class="achievement-card {{ach.unlocked ? 'unlocked' : 'locked'}} {{ach.almostDone ? 'almost-done' : ''}} {{highlightAchievementId === ach.id ? 'highlight-focus' : ''}}">
+                  <view class="ach-top">
+                    <image class="ach-emoji-fallback" src="/images/ui/icon-star.png" mode="aspectFit" />
+                    <text class="ach-emoji emoji-safe">{{ach.emoji}}</text>
+                    <text wx:if="{{ach.secret && !ach.unlocked}}" class="ach-secret-badge">隐藏</text>
+                  </view>
+                  <text class="ach-name">{{ach.name}}</text>
+                  <text class="ach-desc">{{ach.desc}}</text>
+                  <text wx:if="{{!ach.unlocked && ach.remainingHint}}" class="ach-hint">{{ach.remainingHint}}</text>
+                </view>
+              </view>
+            </view>
+          </view>
+        </block>
+      </scroll-view>
+    </view>
+    <view class="fab-row">
+      <view class="fab-item backup-fab" catchtap="tapBackupBox">
+        <text class="fab-text-icon">备份</text>
+      </view>
+      <view class="fab-item feedback-fab" catchtap="tapFeedbackBox">
+        <image class="fab-icon" src="/images/ui/icon-feedback.png" mode="aspectFit" />
+      </view>
+      <view class="fab-item dev-fab" catchtap="tapDeveloperModal">
+        <image class="fab-icon" src="/images/ui/icon-star.png" mode="aspectFit" />
+      </view>
+    </view>
+  </view>
+
+  <view
+    class="dev-overlay {{showDeveloperModal ? 'is-open' : ''}}"
+    wx:if="{{developerOverlayVisible || showDeveloperModal}}"
+    catchtap="noop">
+    <view class="dev-panel" catchtap="noop">
+      <view class="dev-panel-header">
+        <text class="dev-panel-title">{{developerPrefaceTitle}}</text>
+        <view class="dev-panel-close" bindtap="closeDeveloperModal">✕</view>
+      </view>
+      <scroll-view scroll-y class="dev-panel-scroll" show-scrollbar="{{false}}">
+        <text class="dev-preface-text" selectable>{{developerPrefaceContent}}</text>
+      </scroll-view>
+    </view>
+  </view>
+
+  <view
+    class="feedback-overlay {{showFeedbackModal ? 'is-open' : ''}}"
+    wx:if="{{feedbackOverlayVisible || showFeedbackModal}}"
+    catchtap="closeFeedbackModal">
+    <view class="feedback-panel" catchtap="noop">
+      <view class="feedback-panel-header">
+        <image class="feedback-panel-emoji" src="/images/ui/icon-feedback.png" mode="aspectFit" aria-hidden="true" />
+        <text class="feedback-panel-title">意见箱</text>
+        <view class="feedback-panel-close" bindtap="closeFeedbackModal">✕</view>
+      </view>
+      <view class="feedback-panel-body">
+        <block wx:if="{{feedbackEnabled}}">
+          <text class="feedback-text feedback-text--lead">星图太小、打卡不准、某站简介想改……都欢迎扔进来！</text>
+          <text class="feedback-text">点「去填写」会复制表单链接，去浏览器或 WPS 打开就能写～</text>
+          <text class="feedback-text feedback-text--hint">有联系方式更好回你；没有也完全 OK。</text>
+        </block>
+        <block wx:else>
+          <text class="feedback-text feedback-text--lead">想吐槽星图太小、打卡不准、某站简介想改？</text>
+          <text class="feedback-text">意见箱正在收拾摊子～这个功能很快就会开放，到时候欢迎来扔想法！</text>
+        </block>
+      </view>
+      <view class="feedback-panel-footer">
+        <block wx:if="{{feedbackEnabled}}">
+          <view class="feedback-btn feedback-btn--primary" bindtap="openFeedbackForm">去填写</view>
+          <view class="feedback-btn feedback-btn--secondary" bindtap="copyFeedbackContext">复制参考信息</view>
+        </block>
+        <view wx:else class="feedback-btn feedback-btn--primary" bindtap="closeFeedbackModal">知道了</view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 打卡成功弹窗 -->
+  <view
+    class="checkin-success-overlay {{showCheckinSuccessModal ? 'is-open' : ''}}"
+    wx:if="{{checkinSuccessOverlayVisible || showCheckinSuccessModal}}"
+    catchtap="closeCheckinSuccessModal">
+    <view class="checkin-success-panel checkin-success-panel--star" catchtap="noop">
+      <view class="checkin-success-stars" aria-hidden="true">
+        <text class="checkin-star checkin-star--1">✦</text>
+        <text class="checkin-star checkin-star--2">✧</text>
+        <text class="checkin-star checkin-star--3">✦</text>
+      </view>
+      <view class="checkin-success-header">
+        <text class="checkin-success-title">打卡成功</text>
+        <view class="checkin-success-close" bindtap="closeCheckinSuccessModal">✕</view>
+      </view>
+      <view class="checkin-success-body">
+        <image class="checkin-success-emoji" src="/images/ui/icon-sparkle.png" mode="aspectFit" />
+        <text class="checkin-success-station">{{checkinSuccessStation}}</text>
+        <text wx:if="{{checkinSuccessQuote}}" class="checkin-success-quote">{{checkinSuccessQuote}}</text>
+        <text wx:if="{{checkinSuccessUnlocks}}" class="checkin-success-unlocks">{{checkinSuccessUnlocks}}</text>
+        <text class="checkin-success-sub">已记录本次打卡</text>
+      </view>
+      <view class="checkin-success-footer">
+        <view class="checkin-success-btn" bindtap="closeCheckinSuccessModal">太棒了</view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 成就解锁弹窗 -->
+  <view
+    class="unlock-overlay {{showUnlockModal ? 'is-open' : ''}}"
+    wx:if="{{unlockOverlayVisible || showUnlockModal}}"
+    catchtap="closeAchievementUnlockModal">
+    <view class="unlock-panel" catchtap="noop" wx:if="{{unlockAchievement}}">
+      <view class="unlock-stars" aria-hidden="true">
+        <text class="unlock-star unlock-star--1">✦</text>
+        <text class="unlock-star unlock-star--2">✧</text>
+      </view>
+      <text class="unlock-badge">成就解锁</text>
+      <view class="unlock-emoji-wrap">
+        <image class="unlock-emoji-fallback" src="/images/ui/icon-star.png" mode="aspectFit" />
+        <text class="unlock-emoji emoji-safe">{{unlockAchievement.emoji}}</text>
+      </view>
+      <text class="unlock-name">{{unlockAchievement.name}}</text>
+      <text class="unlock-desc">{{unlockAchievement.desc}}</text>
+      <view class="unlock-btn" bindtap="closeAchievementUnlockModal">知道了</view>
+    </view>
+  </view>
+
+  <!-- 统计弹层：整体 / 线路 / 本月 / 连续探索 -->
+  <view
+    class="stats-overlay {{statsSheetOpen ? 'is-open' : ''}}"
+    wx:if="{{statsSheetVisible || statsSheetOpen}}"
+    catchtap="closeStatsSheet">
+    <view class="stats-panel" catchtap="noop">
+      <view class="stats-panel-header">
+        <view class="stats-panel-titles">
+          <text class="stats-panel-title">{{statsSheetTitle}}</text>
+          <text wx:if="{{statsSheetSubtitle}}" class="stats-panel-subtitle">{{statsSheetSubtitle}}</text>
+        </view>
+        <view class="stats-panel-close" bindtap="closeStatsSheet">✕</view>
+      </view>
+
+      <scroll-view scroll-y class="stats-panel-scroll" show-scrollbar="{{false}}">
+        <!-- 整体 / 本月：扁平列表 -->
+        <block wx:if="{{activeStatsSheet === 'global' || activeStatsSheet === 'month'}}">
+          <view wx:if="{{statsSheetList.length === 0}}" class="stats-empty">
+            {{activeStatsSheet === 'month' ? '本月还没有打卡记录' : '还没有打卡记录'}}
+          </view>
+          <view
+            wx:for="{{statsSheetList}}"
+            wx:key="name"
+            class="stats-list-item">
+            <view class="stats-list-body" bindtap="onStatsSheetItemTap" data-name="{{item.name}}" data-line="{{item.line}}">
+              <view class="stats-list-main">
+                <text class="stats-list-name">{{item.name}}</text>
+                <text class="stats-list-line">{{item.lineLabel}}</text>
+              </view>
+              <text class="stats-list-time">{{item.checkTimeText}}</text>
+            </view>
+            <view class="stats-list-map" catchtap="openStatsSheetItemInMap" data-name="{{item.name}}" data-line="{{item.line}}">星图</view>
+          </view>
+        </block>
+
+        <!-- 线路：已打 / 未打分区 -->
+        <block wx:elif="{{activeStatsSheet === 'line'}}">
+          <block wx:for="{{statsSheetSections}}" wx:key="id" wx:for-item="section">
+            <view class="stats-section-title">{{section.title}}</view>
+            <view wx:if="{{section.items.length === 0}}" class="stats-empty stats-empty--section">{{section.emptyText}}</view>
+            <view
+              wx:for="{{section.items}}"
+              wx:for-item="item"
+              wx:key="name"
+              class="stats-list-item">
+              <view class="stats-list-body" bindtap="onStatsSheetItemTap" data-name="{{item.name}}" data-line="{{currentLine}}">
+                <view class="stats-list-main">
+                  <text class="stats-list-name">{{item.name}}</text>
+                </view>
+                <text wx:if="{{item.checkTimeText}}" class="stats-list-time">{{item.checkTimeText}}</text>
+              </view>
+              <view class="stats-list-map" catchtap="openStatsSheetItemInMap" data-name="{{item.name}}" data-line="{{currentLine}}">星图</view>
+            </view>
+          </block>
+        </block>
+
+        <!-- 连续探索：当月日历 -->
+        <block wx:elif="{{activeStatsSheet === 'streak' && statsCalendar}}">
+          <view class="stats-calendar-caption">{{statsCalendar.year}}年{{statsCalendar.month}}月</view>
+          <view class="stats-calendar-weekdays">
+            <text wx:for="{{weekDayLabels}}" wx:key="*this" class="stats-calendar-weekday">{{item}}</text>
+          </view>
+          <view class="stats-calendar-grid">
+            <view
+              wx:for="{{statsCalendar.days}}"
+              wx:for-index="idx"
+              wx:key="idx"
+              class="stats-calendar-cell {{item.inMonth ? '' : 'is-pad'}} {{item.isToday ? 'is-today' : ''}} {{item.hasCheckin ? 'has-checkin' : ''}}">
+              <text wx:if="{{item.inMonth}}" class="stats-calendar-day">{{item.day}}</text>
+              <view wx:if="{{item.hasCheckin}}" class="stats-calendar-dot"></view>
+            </view>
+          </view>
+          <text class="stats-calendar-hint">每一天的脚步，都在点亮这座城市。</text>
+        </block>
+      </scroll-view>
+    </view>
+  </view>
+
+  <!-- 备份与恢复 -->
+  <view
+    class="backup-overlay {{showBackupModal ? 'is-open' : ''}}"
+    wx:if="{{backupOverlayVisible || showBackupModal}}"
+    catchtap="closeBackupModal">
+    <view class="backup-panel" catchtap="noop">
+      <view class="backup-panel-header">
+        <text class="backup-panel-title">备份与恢复</text>
+        <view class="backup-panel-close" bindtap="closeBackupModal">✕</view>
+      </view>
+      <view class="backup-panel-body">
+        <text class="backup-text">打卡记录与成就保存在本机。导出 JSON 备份后可换机恢复。</text>
+        <view class="backup-btn backup-btn--primary" bindtap="exportBackupData">导出备份（复制 JSON）</view>
+        <view class="backup-btn" bindtap="importBackupMerge">导入备份（合并）</view>
+        <view class="backup-btn backup-btn--danger" bindtap="importBackupReplace">导入备份（覆盖）</view>
+      </view>
+    </view>
+  </view>
+
+  <station-sheet
+    visible="{{showStationSheet}}"
+    theme="journal"
+    station="{{stationSheetData}}"
+    showUndo="{{true}}"
+    showMapLink="{{true}}"
+    bind:close="closeStationSheet"
+    bind:viewmap="onViewMapFromSheet"
+    bind:undo="onUndoFromSheet"
+  />
+</view>

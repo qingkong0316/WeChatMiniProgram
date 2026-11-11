@@ -1,0 +1,10 @@
+{
+  "navigationBarTitleText": "上海地铁打卡",
+  "navigationBarBackgroundColor": "#FAF7F2",
+  "navigationBarTextStyle": "black",
+  "backgroundColor": "#FAF7F2",
+  "backgroundTextStyle": "dark",
+  "usingComponents": {
+    "station-sheet": "../../components/station-sheet/station-sheet"
+  }
+}
